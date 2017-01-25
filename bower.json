@@ -1,0 +1,25 @@
+{
+  "name": "cartegeometiersmodulejs",
+  "description": "",
+  "main": [
+    "cartegeometiers.min.css",
+    "cartegeometiers.min.js"
+  ],
+  "authors": [
+    "M.B"
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular-animate": "^1.4.0",
+    "angularUtils-pagination": "angular-utils-pagination#^0.11.1",
+    "geometiersmodulejs": "geometiers.module.js#*"
+  }
+}
