@@ -10,7 +10,7 @@
  */
 angular
   .module('cartegeometiersmodulejsApp', [
-    //'ngAnimate',
+    'ngAnimate',
     'ngResource',
     'ngRoute',
     'geometiersmodulejsApp',
@@ -321,7 +321,7 @@ angular.module('cartegeometiersmodulejsApp')
  * # drawmap
  */
 angular.module('cartegeometiersmodulejsApp')
-  .directive('drawMap', ["$location", "$timeout", "FiltreBounds", "Icone", "limitToFilter", function ($location,$timeout,FiltreBounds,Icone,limitToFilter) {
+  .directive('drawMap', ["$animate", "$location", "$timeout", "FiltreBounds", "Icone", "limitToFilter", function ($animate,$location,$timeout,FiltreBounds,Icone,limitToFilter) {
     return {
       
       restrict: 'EA',
@@ -329,6 +329,9 @@ angular.module('cartegeometiersmodulejsApp')
       templateUrl:'views/drawmap.template.html',
       scope : true,
       link: function postLink(scope, element, attrs) {
+      	
+      	//! IMPORTANT on désactive ngAnimate pour cet element
+      	$animate.enabled(false, element)
 
       	var map = L.map(attrs['id'],
 
