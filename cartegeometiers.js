@@ -501,7 +501,7 @@ angular.module('cartegeometiersmodulejsApp')
       link: function postLink(scope, element, attrs) {
         var o = scope.artisan;
             var photos = Artisans.photos.get({id:o.properties.numerosiret}, function() {
-        		if(photos.profil != null)
+            if(photos.profil.length > 0)
         			scope.thumbnail = "data:image/jpeg;base64," + photos.profil.thumbnailsbase64;
 		    });
       }
@@ -523,7 +523,7 @@ angular.module('cartegeometiersmodulejsApp')
         scope.$watch('artisan',function(){
           if(angular.isDefined(scope.artisan)){
               Artisans.photos.get({id:scope.artisan._numerosiret}, function(result) {
-                  if(result.profil != null)
+                  if(result.profil.length > 0)
                     scope.thumbnail = result.profil.large;
               });
           }
