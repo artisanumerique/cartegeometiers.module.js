@@ -222,7 +222,7 @@ angular.module('cartegeometiersmodulejsApp')
 
         groupeartisan : function(){
 
-          return  L.layerGroup()
+          return  L.featureGroup();
 
 
           /*return L.markerClusterGroup({     
@@ -510,10 +510,11 @@ angular.module('cartegeometiersmodulejsApp')
          if(o.properties.fiche._profil_img != "")
           scope.thumbnail = o.properties.fiche._profil_img;
 
-           /*var photos = Artisans.photos.get({id:o.properties.numerosiret}, function() {
-           // if(photos.profil.length > 0)
-        			//scope.thumbnail = "data:image/jpeg;base64," + photos.profil.thumbnailsbase64;
-		        });*/
+          /*var photos = Artisans.photos.get({id:o.properties.numerosiret}, function() {
+          // if(photos.profil.length > 0)
+        		//scope.thumbnail = "data:image/jpeg;base64," + photos.profil.thumbnailsbase64;
+		      });*/
+
       }
     };
   }]);
