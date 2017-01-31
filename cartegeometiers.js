@@ -10,7 +10,7 @@
  */
 angular
   .module('cartegeometiersmodulejsApp', [
-    //'ngAnimate',
+    'ngAnimate',
     'ngResource',
     'ngRoute',
     'geometiersmodulejsApp',
@@ -20,11 +20,40 @@ angular
         "API": "http://qualimetiers.fr/api",
         "urlstyle": "cixlnex77000s2sntu1jcfn6o",
   })
-  .config(["$routeProvider", "$locationProvider", function ($routeProvider,$locationProvider) {
+  .config(["$routeProvider", "$locationProvider", "$provide", function ($routeProvider,$locationProvider,$provide) {
 
     // use the HTML5 History API
     $locationProvider.html5Mode(true);
 
+    $provide.decorator('$location', [
+      '$delegate',
+      '$injector',
+      '$rootScope',
+      '$timeout',
+      function locationServiceDecorator($delegate, $injector, $rootScope, $timeout) {
+
+        var location = $delegate.url;
+    
+        function aNewLocation(url, reload) {
+
+          if(arguments[1] == false){
+              var $route = $injector.get('$route');
+                var lastRoute = $route.current;
+                var un = $rootScope.$on('$locationChangeSuccess', function () {
+                    $route.current = lastRoute;
+                    un();
+                });
+          }
+
+           return location.apply($delegate, arguments);
+        }
+
+        $delegate.url = aNewLocation;
+        return $delegate;
+      }
+    ]);
+
+ 
     $routeProvider
       // page carte, liste des artisans
       .when('/:nomterritoire/lat/:lat/lon/:lon/?', {
@@ -35,21 +64,7 @@ angular
       });
   }])
   .run(['$route', '$rootScope', '$location','$timeout', function ($route, $rootScope, $location, $timeout) {
-      
-    // ! IMPORTANT pour le rafraichissement de la map
-    var original = $location.url;
-    $location.url = function (url, reload) {
-        if (reload === false) {
-            var lastRoute = $route.current;
-            var un = $rootScope.$on('$locationChangeSuccess', function () {
-                $route.current = lastRoute;
-                un();
-            });
-        }
-        return original.apply($location, [url]);
-    };
-    
-    
+
     $rootScope.$on('$viewContentLoaded', function(event) {
     $timeout(function() {
         componentHandler.upgradeAllRegistered();
@@ -134,6 +149,7 @@ angular.module('cartegeometiersmodulejsApp')
 		Webservice.get(tools.arrayToObject(params),function(datas){
 			 
 			 $scope.loading = false;
+    		
     		 // init filtreBounds
     		 if(datas.features.length > 0)
     		 FiltreBounds.setCenter(datas.features[0].properties.centre);
@@ -143,10 +159,13 @@ angular.module('cartegeometiersmodulejsApp')
     		 FiltreBounds.page  = 1;
     		 $scope.currentPage = 1;
     		 
-    		 $timeout(function () {
-				  $location.url(FiltreBounds.url(),true);
-			 },1); 
+    		//$window.open(FiltreBounds.url(), "_self");
+    	   
+			$location.url(FiltreBounds.url()); 
+
 		})
+
+    	
 	})
 
 
@@ -321,7 +340,7 @@ angular.module('cartegeometiersmodulejsApp')
  * # drawmap
  */
 angular.module('cartegeometiersmodulejsApp')
-  .directive('drawMap', ["$location", "$timeout", "FiltreBounds", "Icone", "limitToFilter", function ($location,$timeout,FiltreBounds,Icone,limitToFilter) {
+  .directive('drawMap', ["$animate", "$location", "$timeout", "FiltreBounds", "Icone", "limitToFilter", function ($animate,$location,$timeout,FiltreBounds,Icone,limitToFilter) {
     return {
       
       restrict: 'EA',
@@ -331,7 +350,7 @@ angular.module('cartegeometiersmodulejsApp')
       link: function postLink(scope, element, attrs) {
       	
       	//! IMPORTANT on désactive ngAnimate pour cet element
-      	//$animate.enabled(false, element)
+      	$animate.enabled(false, element)
 
       	var map = L.map(attrs['id'],
 
@@ -602,8 +621,7 @@ angular.module('cartegeometiersmodulejsApp')
     return {
       templateUrl: function(element, attr) { return attr.templateUrl ? attr.templateUrl : 'views/cartegeometiers.template.html' },
       restrict: 'EA',
-      replace: true,
-      controller: ["$scope", "$element", "$attrs", function ($scope, $element, $attrs) {}]
+      replace: true
     };
   });
 
@@ -627,6 +645,11 @@ angular.module('cartegeometiersmodulejsApp').run(['$templateCache', function($te
 
   $templateCache.put('views/drawmap.template.html',
     "<div id=\"map-pins\"> <div id=\"rechercher\" ng-init=\"rechercheActive=true\"> <div ng-show=\"rechercheActive\" class=\"dep\"> <label class=\"mdl-checkbox mdl-js-checkbox\" for=\"checkbox-1\" mdl-upgrade> <input type=\"checkbox\" id=\"checkbox-1\" class=\"mdl-checkbox__input\" checked ng-init=\"pinsonmove = true\" ng-click=\"pinsonmove = !pinsonmove\"> <span class=\"mdl-checkbox__label\">Rechercher en déplaçant la carte</span> </label> </div> <div ng-hide=\"rechercheActive\" class=\"refresh\"> <a ng-click=\"move()\">Relancer la recherche</a> <i class=\"material-icons\">&#xE5D5;</i> </div> </div> </div>"
+  );
+
+
+  $templateCache.put('views/header.html',
+    "<div class=\"mdl-layout__header-row header-content\"> <div class=\"sig-logo\" ng-click=\"goto('home')\"> <div class=\"titre\"><span class=\"geo\">quali</span>métiers</div> </div> <div class=\"sig-header-search\"> <div class=\"sig-search-box\"> <div class=\"sig-search-image\"><i class=\"material-icons\">search</i></div> <input search-location parent=\"{name: 'departement', value: '1'}\" type=\"aprm,metier,secteur,artisan\" ng-click=\"filtre = ''\" placeholder=\"Trouver un artisan qualifié\" ng-model=\"filtre\" type=\"text\" class=\"sig-search-field\"> <span class=\"deleteFiltre\" ng-show=\"filtre\" ng-click=\"supp(['secteur','metier','codeaprm','siret'],$event)\"><i class=\"material-icons\">&#xE14C;</i></span> </div> <div class=\"sig-search-box location\"> <input search-location parent=\"{name: 'departement', value: '1'}\" type=\"commune\" placeholder=\"Commune\" ng-model=\"location\" ng-click=\"location = ''\" type=\"text\" class=\"sig-search-field\"> </div> </div> <div class=\"sig-header-link\"> <div class=\"mdl-layout-spacer\"></div> <nav class=\"mdl-navigation\"> <a class=\"mdl-navigation__link share\" href=\"\">Partager</a> <a class=\"mdl-navigation__link\" href=\"\">Mon compte</a> </nav> </div> </div>"
   );
 
 }]);
