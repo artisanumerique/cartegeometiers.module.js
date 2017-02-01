@@ -33,19 +33,22 @@ angular
       function locationServiceDecorator($delegate, $injector, $rootScope, $timeout) {
 
         var location = $delegate.url;
+        var $route;
     
         function aNewLocation(url, reload) {
 
+         $route = $injector.get('$route');
+
           if(arguments[1] == false){
-              var $route = $injector.get('$route');
+             
                 var lastRoute = $route.current;
                 var un = $rootScope.$on('$locationChangeSuccess', function () {
                     $route.current = lastRoute;
                     un();
                 });
           }
-
-           return location.apply($delegate, arguments);
+         
+         return  $timeout(location.apply($delegate, arguments),0);
         }
 
         $delegate.url = aNewLocation;
@@ -74,9 +77,15 @@ angular
 
 }])
 
-
 'use strict';
 
+/**
+ * @ngdoc function
+ * @name cartegeometiersmodulejsApp.controller:CartegeometiersCtrl
+ * @description
+ * # CartegeometiersCtrl
+ * Controller of the cartegeometiersmodulejsApp
+ */
 /**
  * @ngdoc function
  * @name cartegeometiersmodulejsApp.controller:CartegeometiersCtrl
@@ -98,76 +107,73 @@ angular.module('cartegeometiersmodulejsApp')
    $scope.urlstyle = config.urlstyle;
 
    // on récupère la liste des items
-   var getItems = function(i){
-			
+  var getItems = function(i){
+	
 		$scope.loading = true;
 
 		Webservice.get(FiltreBounds.getParams(i),function(datas){
 			$scope.loading 	= false;
-        	$scope.refresh 	= true;
-        	$scope.items	   = datas.features;	
+      $scope.refresh 	= true;
+      $scope.items	   = datas.features;	
 			$scope.totalItems  = $scope.items.length;
 			FiltreBounds.page  = $scope.currentPage;
-        	$location.url(FiltreBounds.url(),false);
-		})
-    }
-   
-    // quand on bouge la carte
-    $scope.moveMap = function(i){
-		// si aucune requête n'est en cours
-		if($scope.loading == false){
-			$scope.currentPage = 1;
-			getItems(i);
-		}
-    }	
-
-    // initialisation de la carte
-    $scope.init = function(i){
-		// si aucune requête n'est en cours
-		if($scope.loading == false)
-			getItems(i);
-	}
-
-    $scope.pageChange = function(v){
-		FiltreBounds.page = $scope.currentPage;
-		$location.url(FiltreBounds.url(),false);
-		$scope.refresh = true;
-	}
-
-	$scope.setSiret = function(siret){ 
-		 $scope.$broadcast('newsiret',siret);
-    }
-
-	// après changement de localisation par la recherche
-	$scope.$on('update.location', function() {
-
-		$scope.loading = true;
-		var params = Filtre.params();
-		params.push({name:'action',value:'filtrer'});
-		
-
-		Webservice.get(tools.arrayToObject(params),function(datas){
-			 
-			 $scope.loading = false;
-    		
-    		 // init filtreBounds
-    		 if(datas.features.length > 0)
-    		 FiltreBounds.setCenter(datas.features[0].properties.centre);
-
-    		 FiltreBounds.zoom = 15;
-    		 FiltreBounds.lieu = datas.statistique.titre[0];
-    		 FiltreBounds.page  = 1;
-    		 $scope.currentPage = 1;
-    		 
-    		//$window.open(FiltreBounds.url(), "_self");
-    	   
-			$location.url(FiltreBounds.url()); 
-
+      $location.url(FiltreBounds.url(),false);
 		})
 
-    	
-	})
+  }
 
+  // initialise la liste d'items d'après les paramètre url
+  $scope.getItemsWhenUrlChange = function(i){
+      // si aucune requête n'est en cours
+      //if($scope.loading == false)
+        getItems(i);
+  }
+
+  // initialise la liste d'items quand on bouge la carte
+  // la vue ne doit pas être rechargée
+  $scope.getItemsWhenMapMove = function(i){
+     // si aucune requête n'est en cours
+     //if($scope.loading == false){
+        $scope.currentPage = 1;
+        getItems(i);
+     // }
+  }
+
+  $scope.pageChange = function(v){
+      FiltreBounds.page = $scope.currentPage;
+      $location.url(FiltreBounds.url(),false);
+      $scope.refresh = true;
+  }
+
+  $scope.setSiret = function(siret){ 
+    $scope.$broadcast('newsiret',siret);
+  }
+
+  // évenement déclenché après changement de localisation
+  $scope.$on('update.location', function() {
+
+      $scope.loading = true;
+
+      // on récupère les paramètres
+      var params = Filtre.params();
+      params.push({name:'action',value:'filtrer'});
+
+      Webservice.get(tools.arrayToObject(params),function(datas){
+       
+        $scope.loading = false;
+        
+        // initialise le centre de la localisation
+        if(datas.features.length > 0)
+        FiltreBounds.setCenter(datas.features[0].properties.centre);
+
+        FiltreBounds.zoom = 15;
+        FiltreBounds.lieu = datas.statistique.titre[0];
+        FiltreBounds.page  = 1;
+        $scope.currentPage = 1;
+        $scope.map = { center: {lat: FiltreBounds.lat, lng: FiltreBounds.lon}, zoom: FiltreBounds.zoom };
+         
+      })
+  })
 
 	// après changement de filtre
 	$scope.$on('update.filtres', function() {
@@ -175,12 +181,11 @@ angular.module('cartegeometiersmodulejsApp')
 		if(angular.isDefined(Filtre.getByName('siret')))
 			$window.open(Filtre.url());
 		else
-			$scope.init(false);
+			$scope.getItemsWhenUrlChange(false);
 	})
 
 
   }]);
-
 'use strict';
 
 /**
@@ -339,6 +344,12 @@ angular.module('cartegeometiersmodulejsApp')
  * @description
  * # drawmap
  */
+/**
+ * @ngdoc directive
+ * @name cartegeometiersmodulejsApp.directive:drawmap
+ * @description
+ * # drawmap
+ */
 angular.module('cartegeometiersmodulejsApp')
   .directive('drawMap', ["$animate", "$location", "$timeout", "FiltreBounds", "Icone", "limitToFilter", function ($animate,$location,$timeout,FiltreBounds,Icone,limitToFilter) {
     return {
@@ -358,7 +369,7 @@ angular.module('cartegeometiersmodulejsApp')
 	       		scrollWheelZoom: false,
 	 	        doubleClickZoom: false,
 	 	        boxZoom: true,
-	 	        minZoom:8,
+	 	        minZoom:13,
 	 	        maxZoom:18,
 	 	        attributionControl: false,
 	 	        center: [scope.map.center.lat,scope.map.center.lng],
@@ -367,59 +378,80 @@ angular.module('cartegeometiersmodulejsApp')
 
       	).setView([scope.map.center.lat,scope.map.center.lng], scope.map.zoom);
       	L.tileLayer('https://api.mapbox.com/styles/v1/art82/'+scope.urlstyle+'/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoiYXJ0ODIiLCJhIjoic3hwSDFJRSJ9.D82gjhYrYR935Knj8cNVwg', {
-			 attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
-			'<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
-			'Imagery © <a href="http://mapbox.com">Mapbox</a>',
-		}).addTo(map);
+    			 attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+    			'<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+    			'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+    		}).addTo(map);
 
+        // on ajoute un groupe qui contiendra les markers à la map
       	scope.markers = Icone.groupeartisan();
-	    map.addLayer(scope.markers);
+	      map.addLayer(scope.markers);
 
-	    map.on({	
-	        moveend: function (){
-	        	FiltreBounds.setBounds(angular.toJson(map.getBounds()));
-	        	if(scope.pinsonmove)
-	        		scope.moveMap(false);
-	        	else{
-	        		scope.rechercheActive = false;
-	        		scope.$apply();
-	        	}	
-	        },
-	        zoomend :function(e){
-				scope.map.zoom = e.target._zoom;
-				FiltreBounds.zoom = scope.map.zoom;
-	        }
-	    });	
+        // on initialise les bornes en fonction du conteneur de la map
+        FiltreBounds.setBounds(angular.toJson(map.getBounds()));
+        scope.getItemsWhenUrlChange(true);
 
+        // évenement carte
+  	    map.on({
+  	        moveend: function (){
+              // on initialise les bornes en fonction du conteneur de la map
+  	        	FiltreBounds.setBounds(angular.toJson(map.getBounds()));
+  	          // on active la recherche avec le déplacement de la carte ou pas
+              if(scope.pinsonmove)
+  	        		scope.getItemsWhenMapMove(false);
+  	        	else{
+  	        		scope.rechercheActive = false;
+  	        		scope.$apply();
+  	        	}
+  	        },
+  	        zoomend :function(e){
+  				    scope.map.zoom = e.target._zoom;
+  				    FiltreBounds.zoom = scope.map.zoom;
+  	        }
+  	    });	
 
-	    scope.move = function(){
+        // après changement des valeurs de la carte
+        scope.$watch('map', function () {
+            map.setView([scope.map.center.lat,scope.map.center.lng], scope.map.zoom);                                
+        });
+
+        // si liste d'artisans change
+        scope.$watch('items',function(){
+            drawPins();    
+        })
+          
+        // si currentPage change
+        scope.$watch('currentPage',function(){
+          drawPins();
+        })
+
+        scope.$on('newsiret',function(e,siret){
+          scope.markers.eachLayer(function(layer) { 
+            if(siret!=''){
+              if(layer.feature.properties.numerosiret ==  siret)
+                  layer.fireEvent('mouseover');
+            }else
+                layer.fireEvent('mouseout');
+          })
+        })
+
+	      scope.move = function(){
 		    	scope.rechercheActive = true;
 		    	FiltreBounds.setBounds(angular.toJson(map.getBounds()));
-		    	scope.moveMap(false);
-		}
+		    	scope.getItemsWhenMapMove(false);
+	    	}
 
-		scope.$on('newsiret',function(e,siret){
-			scope.markers.eachLayer(function(layer) {	
-				if(siret!=''){
-					if(layer.feature.properties.numerosiret ==  siret){
-		    			layer.fireEvent('mouseover');
-		    		}
-				}else{
-						layer.fireEvent('mouseout');	        		
-				}
-			})
-	    })
-
+		
 
 		// dessiner pins
 		var drawPins = function(){
 		      
-        var itemsReduit = limitToFilter(scope.items,scope.itemsPerPage,scope.itemsPerPage*(scope.currentPage-1));
+      var itemsReduit = limitToFilter(scope.items,scope.itemsPerPage,scope.itemsPerPage*(scope.currentPage-1));
 			  	 
 			scope.markers.clearLayers();	  
 
 	        var g = L.geoJson(itemsReduit,{
-				pointToLayer: function (feature, latlng){
+				  pointToLayer: function (feature, latlng){
 		  			return Icone.pointToLayer(feature, latlng);
 		  		},
 		  		onEachFeature: function (feature, layer){	
@@ -445,37 +477,14 @@ angular.module('cartegeometiersmodulejsApp')
 	  		});
           		
 
-	        var i = 0;
-	        g.eachLayer(function(layer) {
+	     var i = 0;
+	     g.eachLayer(function(layer) {
 	             i++;
 	             layer.options.icon.options.number = i;
 	             scope.markers.addLayer(layer);	
-	        });
-        		  
-
+	     });
+        	
 		}
-
-		// si liste d'artisans change
-	    scope.$watch('items',function(){
-		    drawPins();
-		       
-		})
-			
-		// si currentPage change
-		scope.$watch('currentPage',function(){
-			drawPins();
-		})
-
-
-
-		var init = function(){
-			FiltreBounds.setBounds(angular.toJson(map.getBounds()));
-			// initialisation 
-			scope.init(FiltreBounds.insideCommune);
-		}
-
-		init();
-
 
 
       }
