@@ -166,6 +166,7 @@ angular.module('cartegeometiersmodulejsApp')
         if(datas.features.length > 0)
         FiltreBounds.setCenter(datas.features[0].properties.centre);
 
+        FiltreBounds.insideCommune = true;
         FiltreBounds.zoom = 15;
         FiltreBounds.lieu = datas.statistique.titre[0];
         FiltreBounds.page  = 1;
@@ -391,18 +392,21 @@ angular.module('cartegeometiersmodulejsApp')
         FiltreBounds.setBounds(angular.toJson(map.getBounds()));
         scope.getItemsWhenUrlChange(true);
 
+
         // évenement carte
   	    map.on({
   	        moveend: function (){
+
               // on initialise les bornes en fonction du conteneur de la map
-  	        	FiltreBounds.setBounds(angular.toJson(map.getBounds()));
-  	          // on active la recherche avec le déplacement de la carte ou pas
+              FiltreBounds.setBounds(angular.toJson(map.getBounds()));
+              // on active la recherche avec le déplacement de la carte ou pas
               if(scope.pinsonmove)
-  	        		scope.getItemsWhenMapMove(false);
-  	        	else{
-  	        		scope.rechercheActive = false;
-  	        		scope.$apply();
-  	        	}
+                scope.getItemsWhenMapMove(false);
+              else{
+                scope.rechercheActive = false;
+                scope.$apply();
+              }
+
   	        },
   	        zoomend :function(e){
   				    scope.map.zoom = e.target._zoom;
@@ -410,9 +414,9 @@ angular.module('cartegeometiersmodulejsApp')
   	        }
   	    });	
 
-        // après changement des valeurs de la carte
+        // après changement des coordonnées de la carte
         scope.$watch('map', function () {
-            map.setView([scope.map.center.lat,scope.map.center.lng], scope.map.zoom);                                
+          map.setView([scope.map.center.lat,scope.map.center.lng], scope.map.zoom);
         });
 
         // si liste d'artisans change
@@ -610,9 +614,19 @@ angular.module('cartegeometiersmodulejsApp')
     return {
       restrict: 'EA',
       replace: true,
-      templateUrl:'views/drawlist.template.html',
+      templateUrl: function(element, attr) { return attr.templateUrl ? attr.templateUrl : 'views/drawlist.template.html' },
       link: function postLink(scope, element, attrs) {
        
+      	var qualifs = [
+      	'MAITRE ARTISAN',
+      	'ARTISAN',
+      	"Artisan en métiers d'art",
+      	"Maître artisan en métiers d'art"]
+
+      	scope.showLogo = function(q){
+      		return qualifs.indexOf(q) != -1;
+      	}
+
       }
     };
   });
@@ -638,7 +652,9 @@ angular.module('cartegeometiersmodulejsApp').run(['$templateCache', function($te
   'use strict';
 
   $templateCache.put('views/cartegeometiers.template.html',
-    "<main class=\"sig-main mdl-layout__content\" ng-controller=\"CartegeometiersCtrl\"> <div class=\"resultat-list\"> <div id=\"opaque-modal\" ng-class=\"{'visible':loading}\"></div> <draw-list></draw-list> </div> <div class=\"resultat-carte\"> <draw-map id=\"map-pins\"></draw-map> </div> </main>"
+    "<div class=\"mdl-layout__header-row header-content\"> <div class=\"sig-logo\" ng-click=\"goto('home')\"> <div class=\"titre\"><span class=\"geo\">géo</span>métiers</div> <div class=\"info\">MIDI-QUERCY</div> </div> <div class=\"sig-header-search\"> <div class=\"sig-search-box\"> <div class=\"sig-search-image\"><i class=\"material-icons\">search</i></div> <input search-location parent=\"{name: 'pays', value: '3'}\" type=\"commune,artisan\" ng-click=\"filtre = ''\" placeholder=\"Trouver une commune ou un artisan\" ng-model=\"filtre\" type=\"text\" class=\"sig-search-field\"> </div> </div> <div class=\"sig-header-link\"> <div class=\"mdl-layout-spacer\"></div> <nav class=\"mdl-navigation\"> <!--<a class=\"mdl-navigation__link share\" href=\"\">Partager</a>\r" +
+    "\n" +
+    "\t\t\t\t\t\t<a class=\"mdl-navigation__link\" href=\"\">Télecharger PDF</a>--> <button class=\"mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab btn-login\"> <i class=\"material-icons\">&#xE7FD;</i> </button> </nav> </div> </div> <main class=\"sig-main mdl-layout__content\" ng-controller=\"CartegeometiersCtrl\"> <div class=\"resultat-list\"> <div id=\"opaque-modal\" ng-class=\"{'visible':loading}\"></div> <draw-list></draw-list> </div> <div class=\"resultat-carte\"> <draw-map id=\"map-pins\"></draw-map> </div> </main>"
   );
 
 
@@ -648,7 +664,7 @@ angular.module('cartegeometiersmodulejsApp').run(['$templateCache', function($te
 
 
   $templateCache.put('views/drawlist.template.html',
-    "<div scroll-if change=\"refresh\" class=\"mdl-layout__content\"> <ul class=\"mdl-list\"> <li class=\"mdl-list__item mdl-list__item--three-line\" dir-paginate=\"artisan in items | itemsPerPage: itemsPerPage\" current-page=\"currentPage\" id=\"{{artisan.properties.numerosiret}}\" ng-mouseover=\"setSiret(artisan.properties.numerosiret)\" ng-mouseleave=\"setSiret('')\" ng-click=\"select(artisan)\"> <span class=\"mdl-list__item-primary-content\"> <artisan-thumbnail></artisan-thumbnail> <span> <!--<span class=\"number\">{{$index + 1}}.</span>--> {{ artisan.properties.raisonsociale | limitTo: 25 }}{{artisan.properties.raisonsociale.length > 25 ? '...' : ''}}</span> <span class=\"mdl-list__item-text-body\">{{ artisan.properties.libelleaprm | limitTo: 75 }}{{artisan.properties.libelleaprm.length > 75 ? '...' : ''}}</span> </span> <span class=\"mdl-list__item-secondary-content\" ng-show=\"artisan.properties.titrequalif == 'ARTISAN' || artisan.properties.titrequalif == 'MAITRE ARTISAN'\"> <a class=\"mdl-list__item-secondary-action\" href=\"#\"><img src=\"images/logo-artisan-list.png\"></a> </span> </li> </ul> <dir-pagination-controls class=\"pagination-control\" on-page-change=\"pageChange()\" template-url=\"views/dirPagination.tpl.html\"></dir-pagination-controls> </div>"
+    "<div scroll-if change=\"refresh\" class=\"mdl-layout__content\"> <ul class=\"mdl-list\"> <li class=\"mdl-list__item mdl-list__item--three-line\" dir-paginate=\"artisan in items | itemsPerPage: itemsPerPage\" current-page=\"currentPage\" id=\"{{artisan.properties.numerosiret}}\" ng-mouseover=\"setSiret(artisan.properties.numerosiret)\" ng-mouseleave=\"setSiret('')\" ng-click=\"select(artisan)\"> <span class=\"mdl-list__item-primary-content\"> <artisan-thumbnail></artisan-thumbnail> <span> <!--<span class=\"number\">{{$index + 1}}.</span>--> {{ artisan.properties.raisonsociale | limitTo: 25 }}{{artisan.properties.raisonsociale.length > 25 ? '...' : ''}}</span> <span class=\"mdl-list__item-text-body\">{{ artisan.properties.libelleaprm | limitTo: 75 }}{{artisan.properties.libelleaprm.length > 75 ? '...' : ''}}</span> </span> <span class=\"mdl-list__item-secondary-content\" ng-show=\"showLogo(artisan.properties.titrequalif)\"> <a class=\"mdl-list__item-secondary-action\" href=\"#\"><img src=\"images/logo-artisan-list.png\"></a> </span> </li> </ul> <dir-pagination-controls class=\"pagination-control\" on-page-change=\"pageChange()\" template-url=\"views/dirPagination.tpl.html\"></dir-pagination-controls> </div>"
   );
 
 
