@@ -461,7 +461,7 @@ angular.module('cartegeometiersmodulejsApp')
 		  		onEachFeature: function (feature, layer){	
 					layer.on({
 		  		  		click: function(e){
-		  		  						
+		  		  				scope.$broadcast('selectpins',layer);
 		  		  		},
 		  		  		mouseover: function (e){
 		  		  			layer.setZIndexOffset(1000);
@@ -652,9 +652,7 @@ angular.module('cartegeometiersmodulejsApp').run(['$templateCache', function($te
   'use strict';
 
   $templateCache.put('views/cartegeometiers.template.html',
-    "<div class=\"mdl-layout__header-row header-content\"> <div class=\"sig-logo\" ng-click=\"goto('home')\"> <div class=\"titre\"><span class=\"geo\">géo</span>métiers</div> <div class=\"info\">MIDI-QUERCY</div> </div> <div class=\"sig-header-search\"> <div class=\"sig-search-box\"> <div class=\"sig-search-image\"><i class=\"material-icons\">search</i></div> <input search-location parent=\"{name: 'pays', value: '3'}\" type=\"commune,artisan\" ng-click=\"filtre = ''\" placeholder=\"Trouver une commune ou un artisan\" ng-model=\"filtre\" type=\"text\" class=\"sig-search-field\"> </div> </div> <div class=\"sig-header-link\"> <div class=\"mdl-layout-spacer\"></div> <nav class=\"mdl-navigation\"> <!--<a class=\"mdl-navigation__link share\" href=\"\">Partager</a>\r" +
-    "\n" +
-    "\t\t\t\t\t\t<a class=\"mdl-navigation__link\" href=\"\">Télecharger PDF</a>--> <button class=\"mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab btn-login\"> <i class=\"material-icons\">&#xE7FD;</i> </button> </nav> </div> </div> <main class=\"sig-main mdl-layout__content\" ng-controller=\"CartegeometiersCtrl\"> <div class=\"resultat-list\"> <div id=\"opaque-modal\" ng-class=\"{'visible':loading}\"></div> <draw-list></draw-list> </div> <div class=\"resultat-carte\"> <draw-map id=\"map-pins\"></draw-map> </div> </main>"
+    "<main class=\"sig-main mdl-layout__content\" ng-controller=\"CartegeometiersCtrl\"> <div class=\"resultat-list\"> <div id=\"opaque-modal\" ng-class=\"{'visible':loading}\"></div> <draw-list></draw-list> </div> <div class=\"resultat-carte\"> <draw-map id=\"map-pins\"></draw-map> </div> </main>"
   );
 
 
